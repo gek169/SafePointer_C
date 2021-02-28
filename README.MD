@@ -169,10 +169,9 @@ The main benefits of this library are as such
 
 4. Good programming conventions for source code security and maintainability are a lot easier to write AND debug.
 
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 
-Here's a list of honest mistakes I foresee happening, and how code reviewers/static analyzers will spot them instantly:
-~~~~~~~~~~~~~~~~~~~~~~~
+
+### Here's a list of honest mistakes I foresee happening, and how code reviewers/static analyzers will spot them instantly:
 
 * If you forget to guard pointer_deref then an expansion of safepointer's arrays might happen in another thread causing an invalid state of the library. 
 
@@ -213,9 +212,6 @@ as safepointer hashes do not start at zero so zeroed out memory should never ret
 * Programmer artificially creates safepointer struct
 
 Code reviewer will see safepointer struct having its members assigned or the struct itself being overwritten.
-
-* 
-
 
 You can see now how this library makes debugging issues and independently verifying code a lot easier.
 
