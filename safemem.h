@@ -60,6 +60,7 @@ typedef enum {
 
 void*					safepointer_deref(safepointer f);
 safepointer 			safepointer_malloc(size_t s, size_t lifetime);
+#define SAFEPTR_MALLOC(type, n, life) safepointer_malloc(sizeof(type) * n, l)
 c_safemem_error_state 	safepointer_free(safepointer f); //returns ERROR STATE
 c_safemem_error_state	safepointer_collect_garbage();		//Iterate lifetimes and automatically free pointers with exhausted lifetimes.
 c_safemem_error_state	safepointer_collect_all();			//Iterate lifetimes and automatically free pointers with exhausted lifetimes.

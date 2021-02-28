@@ -24,11 +24,19 @@ Simply put: This library forces you to do what you've never wanted to but always
 
 * Guard memory accesses
 
+If you don't go out of your way to avoid taking advantage of this library, you should never get memory errors again.
+
+
+
 ### What's the cost?
 
-This implementation is not cost-free. The technology does exist on most platforms to make a cost-free version,
+This implementation is not cost-free. The technology does exist on most platforms to make an (almost) cost-free version,
 but it wouldn't be cross-platform anymore.
 
+If you're only targetting a small handful of platforms, you should consider looking at safemem.h and figuring out how you could
+implement the algorithm in a more efficient way for your platform(s).
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 safemem stores three arrays.
 
 * The pointer array. Your actual malloc'd pointers are stored here.
@@ -55,6 +63,22 @@ The additional runtime cost of using safemem over raw C pointers is as such
 
 * The arrays might get quite large if you have a lot of fragmented malloc'd memory.
 
+### Why don't I just write better code and avoid the runtime cost of this library?
+
+You say "I'll just write better code" but when I go through any standard linux system and try using different libraries or programs
+under valgrind, I see loads of memory leaks.
+
+The debian bug report area is CONSTANTLY seeing new "use after free" or "read-past-by-one" errors which allow arbitrary code execution.
+
+The linux kernel and its many kernel modules regularly see new ACE bugs.
+
+The largest impact at runtime on performance that this library will cause for you is probably the added cost of dereferencing pointers.
+
+The data structure with probably the highest associated cost of using this library would be the linked list, then, since it requires
+dereferencing pointers repeatedly to parse.
+
+Standard vectors, arrays, framebuffers, large blocks of contiguous memory are the most efficient when working with this library,
+you simply determine the largest access in your loop that will happen and guard it with a SAFEPTR_GUARD_IF
 
 ### How will I have to change my programming conventions?
 
@@ -68,22 +92,48 @@ You use your real pointer (With the SAME resource lock, if the other threads can
 You FORGET your real pointer (Let it go out of scope, set it to null)
 ```
 
-Second, you guard all array accesses. You can do this before for-loops to test the maximum iteration of the loop.
+Second, you guard all array accesses. You can do this before processing loops to test the maximum iteration of the loop.
+
+This means you do have to successfully identify the largest access- Which is the biggest flaw with this library.
+
+If you're in a situation where speed is vastly less important than not crashing (Database software, medical equipment...)
+I would recommend guarding *every* access and writing an error handler.
+
+
 
 ```
 a special macro SAFEPTR_GUARD_IF(type, safeptr, i) has been defined specifically to help you guard your memory accesses.
 ```
 
-Third, you have to tell the library how long you want to use the memory (If you use the garbage collector)
+Third, you ALWAYS specify the *type* you're allocating when calling malloc.
+
+```
+Always use SAFEPTR_MALLOC(type, n, lifetime)
+```
+
+
+Fourth, you have to tell the library how long you want to use the memory (If you use the garbage collector)
 
 ```
 The garbage collector is entirely optional.
 ```
 
+### Is this GCC/Clang only (using attribute cleanup or the like)?
+
+No. It should work in any C99 compatible C compiler.
+
+Note that the included example/test program uses pthreads. Just replace the lock/unlock macros with your platform's mutex implementation
+if you want to test multithreading.
+
+
+
 ### Does this library require any sort of special initialization?
 ```
-No. 
+The only thing you'd need to initialize is a mutex at program start if you're writing a multithreaded application.
+
+Otherwise, it works out-of-the-box.
 ```
+
 ### How do I prevent my memory from being deleted while still using the garbage collector
 
 ```
@@ -106,11 +156,82 @@ You have to have stddef, stdint, and stdlib
 
 It's recommended you go in and disable the scheduled deaths array if you're not going to use it, which you probably won't want to.
 
+### This doesn't actually *prevent* memory problems
+
+You're right. if you go out of the way to avoid what this library tries to force you to do, you *can* still make mistakes.
+
+The main benefits of this library are as such
+
+1. Mistakes are more difficult to make
+
+2. When you identify that there is a mistake, debugging it is a lot easier
+
+3. Code reviewers can more easily identify mistakes (In fact, you could probably write a static analyzer...).
+
+4. Good programming conventions for source code security and maintainability are a lot easier to write AND debug.
+
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Here's a list of honest mistakes I foresee happening, and how code reviewers/static analyzers will spot them instantly:
+~~~~~~~~~~~~~~~~~~~~~~~
+
+* If you forget to guard pointer_deref then an expansion of safepointer's arrays might happen in another thread causing an invalid state of the library. 
+
+Code reviewer sees lack of RESOURCE_LOCK() around safepointer_deref
+
+* If you forget to guard the usage of memory and invoke the garbage collector on another thread, then your memory might get free'd 
+
+Code reviewer sees lack of RESOURCE_LOCK() around the entire lifetime of a raw pointer
+
+* You might incorrectly determine the maximum memory access of a for loop you're guarding with SAFEPTR_GUARD_IF 
+
+Code reviewer sees lack of or incorrect placement of SAFEPTR_GUARD_IF
+
+* You stupidly store a raw pointer without thinking about it 
+
+Code reviewer sees raw pointer type in struct/globals
+
+* You fail to guard memory access altogether 
+
+Code reviewer sees pointer_deref or raw pointer deref without SAFEPTR_GUARD_IF
+
+* You don't handle getting a NULL from safepointer_deref 
+
+Code reviewer sees SAFEPTR_GUARD_IF without else error handling
+
+* You use different types when guarding and when allocating 
+
+Code reviewer sees mismatching types in SAFEPTR_GUARD_IF and SAFEPTR_MALLOC
+
+* Programmer dereferences non-initialized safepointer
+
+Code reviewer sees safepointer that is dereferenced before SAFEPTR_MALLOC. 
+
+Note that most of these errors will never reach code review, 
+as most executions will invoke the associated error handler as a null pointer will usually be returned from safepointer_deref,
+as safepointer hashes do not start at zero so zeroed out memory should never return a valid safepointer.
+
+* Programmer artificially creates safepointer struct
+
+Code reviewer will see safepointer struct having its members assigned or the struct itself being overwritten.
+
+* 
+
+
+You can see now how this library makes debugging issues and independently verifying code a lot easier.
+
+This library is *specifically* targeted at large organizations which want to reduce the number of man-hours needed to verify the integrity
+of a programmer's code.
+
+99% of errors can be caught just by hitting Ctrl+F in the codebase instead of meticulous verification of algorithms.
+
+Even horrible spaghetti code should be easily verifiable.
+
 ### There are better ways you could have done this.
 
 I'd like to know, actually. Submit an issue! Thanks!
 
-I spent quite a while trying to figure out the most efficient way I could write a memory safety system for C.
+I spent quite a while trying to figure out the most efficient, effective way I could write a memory safety system for C.
 
 * I could put some data at the beginning of all memory allocations, like the size.
 

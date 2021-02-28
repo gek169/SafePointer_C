@@ -16,9 +16,10 @@ pthread_mutex_t myMutex;
 
 void tfunc(){
 	safepointer ptrs[100];
-	ptrs[42] = safepointer_malloc(1000, 1); //My special buffer.
+	//ptrs[42] = safepointer_malloc(1000, 1); //My special buffer.
+	ptrs[42] = SAFEPTR_MALLOC(int,1000,1);
 	for(size_t i = 0;i<10000;i++){
-		if(i%100 != 42) ptrs[i%100] = safepointer_malloc(30*sizeof(int), 1);
+		if(i%100 != 42) ptrs[i%100] = SAFEPTR_MALLOC(int,30,1);
 		if(i%100 == 0) puts("Another hundred iterations!\n");
 		if(i%100 != 42) 
 			if(safepointer_deref(ptrs[i%100]) == NULL)
@@ -76,7 +77,7 @@ int main(){
 		lock(&t4);
 		lock(&t5);
 		lock(&t6);
-		if(i%100 != 42) ptrs[i%100] = safepointer_malloc(10, 1);
+		if(i%100 != 42) ptrs[i%100] = SAFEPTR_MALLOC(int,3000,1);
 		if(i%100 == 0) puts("Another hundred iterations!\n");
 		if(safepointer_deref(ptrs[i%100]) == NULL){	printf("(main) We... didn't actually get any memory? iteration %zu\n",i);
 		exit(1);
