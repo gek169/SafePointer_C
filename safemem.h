@@ -161,6 +161,9 @@ safepointer safepointer_malloc(size_t sz, size_t lifetime){
 			if(c_safemem_ptrs[i] == NULL){
 				safepointer_increment_hash_counter();
 				s.hash = c_safemem_hash_counter;
+#ifdef C_SAFEMEM_DEBUG
+				printf("\nALLOCED, HASH = %zu, %zu", s.hash.part2, s.hash.part1);
+#endif
 				s.indy = i;
 				quick = i + 1;
 				break;
