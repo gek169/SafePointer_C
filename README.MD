@@ -36,7 +36,6 @@ but it wouldn't be cross-platform anymore.
 If you're only targetting a small handful of platforms, you should consider looking at safemem.h and figuring out how you could
 implement the algorithm in a more efficient way for your platform(s).
 
-~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 safemem stores three arrays.
 
 * The pointer array. Your actual malloc'd pointers are stored here.
