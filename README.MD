@@ -203,15 +203,16 @@ Code reviewer sees mismatching types in SAFEPTR_GUARD_IF and SAFEPTR_MALLOC
 
 * Programmer dereferences non-initialized safepointer
 
-Code reviewer sees safepointer that is dereferenced before SAFEPTR_MALLOC. 
+Most dereference-before-initialization errors will result in the error handler triggering in SAFEPTR_GUARD_IF's.
 
-Note that most of these errors will never reach code review, 
-as most executions will invoke the associated error handler as a null pointer will usually be returned from safepointer_deref,
-as safepointer hashes do not start at zero so zeroed out memory should never return a valid safepointer.
+Code reviewer will see error handler triggering, or...
+Code reviewer will see lack of error handler.
 
 * Programmer artificially creates safepointer struct
 
 Code reviewer will see safepointer struct having its members assigned or the struct itself being overwritten.
+
+
 
 You can see now how this library makes debugging issues and independently verifying code a lot easier.
 
