@@ -79,6 +79,7 @@ safeptrhash* c_safemem_hashes = NULL;
 size_t* c_safemem_scheduled_deaths = NULL;
 size_t c_safemem_nptrs = 0;
 size_t c_safemem_failed_malloc = 0;
+size_t quick = 0;
 safeptrhash c_safemem_hash_counter = {0,1};
 size_t c_safemem_update_calls = 1; //Counts.
 
@@ -152,18 +153,22 @@ safepointer safepointer_malloc(size_t sz, size_t lifetime){
 	s.indy = SIZE_MAX;
 	s.hash = SAFEPTRHASH_MAX;
 	s.size = 0;
-	
+	size_t end = c_safemem_nptrs;
 	SAFEPTR_RESOURCE_LOCK();
 	if(c_safemem_failed_malloc) {SAFEPTR_RESOURCE_UNLOCK();return s;}
 	while(s.indy == SIZE_MAX){
-		for(size_t i = 0; i < c_safemem_nptrs;i++)
+		for(size_t i = quick; i < end;i++)
 			if(c_safemem_ptrs[i] == NULL){
 				safepointer_increment_hash_counter();
 				s.hash = c_safemem_hash_counter;
 				s.indy = i;
+				quick = i + 1;
 				break;
 			}
-		if(s.indy == SIZE_MAX){
+		if(s.indy == SIZE_MAX && quick != 0){
+			end=quick;
+			quick = 0;
+		} else if(s.indy == SIZE_MAX){
 			SAFEPTR_RESOURCE_UNLOCK();
 			if(safepointer_expand_storage()){
 #ifdef C_SAFEMEM_DEBUG
@@ -171,9 +176,12 @@ safepointer safepointer_malloc(size_t sz, size_t lifetime){
 #endif
 				return s;
 			}
+			
 			SAFEPTR_RESOURCE_LOCK();
+			quick = 0;
+			end = c_safemem_nptrs;
 		}
-	}
+	}	//EOF WHILE
 	if(s.indy != SIZE_MAX){
 
 		c_safemem_ptrs[s.indy] = calloc(1,sz);
