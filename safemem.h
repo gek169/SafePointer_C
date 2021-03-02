@@ -43,6 +43,7 @@ typedef struct {
 	size_t part2;	//Low
 	size_t part1;	//High
 } safeptrhash;
+#define SAFEPTR_INIT	(safepointer){0,0,(safeptrhash){0,0}}
 #define SAFEPTRHASH_MAX	(safeptrhash){SIZE_MAX,SIZE_MAX}
 #define SAFEPTRHASH_ZERO (safeptrhash){0,0}
 #define SAFEPTR_GUARD_IF(type, safeptr, i) if(((i)*sizeof(type)) < safeptr.size)
