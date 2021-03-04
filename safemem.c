@@ -32,12 +32,16 @@ void tfunc(){
 		{	
 			
 			SAFEPTR_RESOURCE_LOCK()
-				int* p = safepointer_deref(sp);
-			SAFEPTR_RESOURCE_UNLOCK()
+				
+			int x = 0;
 			//Since garbage collection never occurs during threads and only during the between-threads area,
 			//We dont have to guard access to malloc'd memory.
-			SAFEPTR_GUARD_IF(int, sp, i)
-				p[i] = 47;
+			//SAFEPTR_GUARD_IF(int, sp, i)
+			//	p[i] = 47;
+			SAFEPTR_TRY_WRITE(int, sp, i, 47);
+			SAFEPTR_TRY_GET(x, int, sp, i);
+			printf("\nValue is %d", x);
+			SAFEPTR_RESOURCE_UNLOCK()
 		}
 		if(i%100 != 42)	safepointer_free(ptrs[i%100]); //Guarantee that we occasionally leak something.
 		if(i%100 == 42)	safepointer_keepalive(ptrs[i%100],200);
