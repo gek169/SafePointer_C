@@ -15,7 +15,7 @@ pthread_mutex_t myMutex;
 #define C_SAFEMEM_DEBUG
 #include "safemem.h"
 
-void tfunc(){
+void tfunc(void* arg){
 	safepointer ptrs[100];
 	//ptrs[42] = safepointer_malloc(1000, 1); //My special buffer.
 	ptrs[42] = SAFEPTR_MALLOC(int,1000,1);
