@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <pthread.h>
 #define LOCKSTEPTHREAD_IMPL
 #include "lockstepthread.h"
